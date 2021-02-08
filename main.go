@@ -6,15 +6,19 @@ import (
 	"log"
 	"os"
 
+	// "github.com/diamondburned/arikawa/v2/discord"
 	"github.com/diamondburned/arikawa/v2/gateway"
 	"github.com/diamondburned/arikawa/v2/state"
 	"github.com/diamondburned/arikawa/v2/utils/handler"
+	"github.com/diamondburned/arikawa/v2/voice"
 )
 
 var token = flag.String("t", "", "Set the token (overrides $BOT_TOKEN)")
 var botname = flag.String("n", "eto", "Set the bot's name")
+var prefix = flag.String("p", "!", "Set the bot's prefix")
 
 var s *state.State
+var u *gateway.ReadyEvent
 var logger *log.Logger
 
 func main() {
@@ -35,7 +39,7 @@ func main() {
 		logger.Fatalf("Session failed: %s\n", err)
 	}
 
-	addPreHandlers()
+	// addPreHandlers()
 	addHandlers()
 	addIntents()
 
@@ -56,26 +60,21 @@ func main() {
 	select {}
 }
 
-func addIntents() {
-	// s.Gateway.AddIntents(gateway.IntentGuilds)
-	// s.Gateway.AddIntents(gateway.IntentGuildMembers)
-	// s.Gateway.AddIntents(gateway.IntentGuildBans)
-	// s.Gateway.AddIntents(gateway.IntentGuildEmojis)
-	// s.Gateway.AddIntents(gateway.IntentGuildIntegrations)
-	// s.Gateway.AddIntents(gateway.IntentGuildWebhooks)
-	// s.Gateway.AddIntents(gateway.IntentGuildInvites)
-	// s.Gateway.AddIntents(gateway.IntentGuildVoiceStates)
-	// s.Gateway.AddIntents(gateway.IntentGuildPresences)
-	s.Gateway.AddIntents(gateway.IntentGuildMessages)
-	// s.Gateway.AddIntents(gateway.IntentGuildMessageReactions)
-	// s.Gateway.AddIntents(gateway.IntentGuildMessageTyping)
-	s.Gateway.AddIntents(gateway.IntentDirectMessages)
-	// s.Gateway.AddIntents(gateway.IntentDirectMessageReactions)
-	// s.Gateway.AddIntents(gateway.IntentDirectMessageTyping)
-}
-
 func addHandlers() {
-	s.AddHandler(sent)
+	// setup
+	s.AddHandler(func(m *gateway.ReadyEvent) {
+		u = m // info used globally
+	})
+
+	// logger
+	// s.AddHandler(sent)
+
+	// music
+	s.AddHandler(music)
+	s.AddHandler(kill)
+	s.AddHandler(play)
+	s.AddHandler(skip)
+	s.AddHandler(queue)
 }
 
 func addPreHandlers() {
@@ -83,4 +82,24 @@ func addPreHandlers() {
 	s.PreHandler.Synchronous = true
 
 	s.PreHandler.AddHandler(unsent)
+}
+
+func addIntents() {
+	s.Gateway.AddIntents(gateway.IntentGuilds)
+	// s.Gateway.AddIntents(gateway.IntentGuildMembers)
+	// s.Gateway.AddIntents(gateway.IntentGuildBans)
+	// s.Gateway.AddIntents(gateway.IntentGuildEmojis)
+	// s.Gateway.AddIntents(gateway.IntentGuildIntegrations)
+	// s.Gateway.AddIntents(gateway.IntentGuildWebhooks)
+	// s.Gateway.AddIntents(gateway.IntentGuildInvites)
+	s.Gateway.AddIntents(gateway.IntentGuildVoiceStates)
+	// s.Gateway.AddIntents(gateway.IntentGuildPresences)
+	s.Gateway.AddIntents(gateway.IntentGuildMessages)
+	// s.Gateway.AddIntents(gateway.IntentGuildMessageReactions)
+	// s.Gateway.AddIntents(gateway.IntentGuildMessageTyping)
+	s.Gateway.AddIntents(gateway.IntentDirectMessages)
+	// s.Gateway.AddIntents(gateway.IntentDirectMessageReactions)
+	// s.Gateway.AddIntents(gateway.IntentDirectMessageTyping)
+
+	voice.AddIntents(s.Gateway) // for voice
 }
