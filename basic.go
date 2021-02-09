@@ -1,37 +1,31 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"strings"
 
+	_ "embed"
+
 	"github.com/diamondburned/arikawa/v2/gateway"
 	"github.com/lordrusk/eto/util"
 )
 
-var (
-	// path to help config
-	helpPath = "./help.json" // TODO when 1.16 releases fully, use new feature to embed for binaries
+var cg util.CmdGroups
 
-	// cgg = util.CmdGroups{
-	// 	"basic": []util.Cmd{
-	// 		{Cmd: "help", Desc: "Generate the help message"},
-	// 		{Cmd: "prefix", Args: []util.Arg{{Name: "New Prfix"}}, Desc: "Generate the help message"},
-	// 	},
-	// 	"music": []util.Cmd{
-	// 		{Cmd: "music", Desc: "Start a new music session"},
-	// 		{Cmd: "kill", Desc: "Kill current music session"},
-	// 		{Cmd: "play", Args: []util.Arg{{Name: "[Search Term || Video Link]"}}, Desc: "Kill current music session"},
-	// 		{Cmd: "skip", Desc: "Skip current song"},
-	// 		{Cmd: "queue", Desc: "Print the queue"},
-	// 	},
-	// }
-	// _ = util.StoreModel(helpPath, cgg)
+// prerequisites for the basic commands
+func basicSetup() error {
+	//go:embed help.json
+	var hjs []byte
 
-	cg = make(util.CmdGroups)
-	_  = util.GetStoredModel(helpPath, &cg)
-)
+	if err := json.Unmarshal(hjs, &cg); err != nil {
+		return err
+	}
+
+	return nil
+}
 
 var basicLog = log.New(os.Stdout, "basic: ", 0)
 

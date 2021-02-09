@@ -40,6 +40,8 @@ func main() {
 	addHandlers()
 	addIntents()
 
+	basicSetup()
+
 	if err := s.Open(); err != nil {
 		fmt.Printf("Failed to connect: %s\n", err)
 		os.Exit(1)
