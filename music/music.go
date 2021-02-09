@@ -35,8 +35,7 @@ var nonYoutubeLink = errors.New("Not a youtube link")
 // potentially expandable to other platforms
 type Media struct {
 	*youtube.Video
-	Stream  io.Reader
-	StartAt int // used for rebasing
+	Stream io.Reader
 }
 
 // a music session

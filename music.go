@@ -49,6 +49,8 @@ func play(m *gateway.MessageCreateEvent) {
 		if _, err := s.SendMessage(m.ChannelID, "Cannot play song! Not in channel", nil); err != nil {
 			musicLog.Printf("Failed to send message: %s\n", err)
 		}
+
+		return
 	}
 
 	id := strings.Join(args, " ")
@@ -209,8 +211,8 @@ func stereo(gid discord.GuildID, cid discord.ChannelID) {
 		cmd := exec.CommandContext(ctx,
 			"ffmpeg",
 			// Streaming is slow, so a single thread is all we need.
-			"-hide_banner", "-threads", "1", "-loglevel", "error", "-ss",
-			strconv.Itoa(media.StartAt), "-i", "pipe:", "-filter:a", "volume=0.25",
+			"-hide_banner", "-threads", "1", "-loglevel", "error",
+			"-i", "pipe:", "-filter:a", "volume=0.25",
 			"-c:a", "libopus", "-b:a", "64k", "-f", "opus", "-",
 		)
 
