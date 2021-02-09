@@ -1,10 +1,6 @@
 package util
 
-import (
-	"encoding/json"
-	"io/ioutil"
-	"strings"
-)
+import "strings"
 
 // useful for creating commands
 func Prefix(str, prefix string) bool {
