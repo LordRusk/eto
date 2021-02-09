@@ -13,61 +13,80 @@ import (
 	"github.com/diamondburned/arikawa/v2/gateway"
 	"github.com/diamondburned/arikawa/v2/voice"
 	"github.com/diamondburned/arikawa/v2/voice/voicegateway"
-	musik "github.com/lordrusk/eto/music"
+	"github.com/lordrusk/eto/music"
 	"github.com/lordrusk/eto/util"
 )
 
-var dj = make(musik.DJ)
+var dj = make(music.DJ)
 var musicLog = log.New(os.Stdout, "music: ", 0)
 
 // errors
 var noMusic = fmt.Errorf("No music is currently being played in this guild. Start a music session with `%smusic`", *prefix)
 var yesMusic = fmt.Errorf("Music already playing in this guild. Close current session with `%skill`", *prefix)
 
-func music(m *gateway.MessageCreateEvent) {
-	if !util.Prefix(m.Content, fmt.Sprintf("%smusic", *prefix)) {
+// Play a song. Automatically starts session if needed.
+func play(m *gateway.MessageCreateEvent) {
+	if !util.Prefix(m.Content, fmt.Sprintf("%splay", *prefix)) {
 		return
 	}
 
-	if dj[m.GuildID] != nil {
-		if _, err := s.SendMessage(m.ChannelID, fmt.Sprintf("%s", yesMusic), nil); err != nil {
-			musicLog.Printf("Failed to send message: %s\n", err)
+	args := util.GetArgs(m.Content)
+	if len(args) < 1 {
+		if _, err := s.SendMessage(m.ChannelID, "Song name or link not given!", nil); err != nil {
+			musicLog.Printf("Failed to send message: %s\n")
 		}
 
 		return
 	}
 
-	vs, err := s.VoiceState(m.GuildID, m.Author.ID)
-	if err != nil {
-		musicLog.Printf("Failed to get voice state of %s: %s\n", m.Author.Username, err)
-		if _, err := s.SendMessage(m.ChannelID, fmt.Sprintf("Cannot join channel: %s not in channel", m.Author.Username), nil); err != nil {
+	if dj[m.GuildID] == nil {
+		// make sure session is active
+		newSesh(m)
+	}
+
+	if _, err := s.VoiceState(m.GuildID, u.User.ID); err != nil {
+		musicLog.Printf("Failed to get bot's voice state: %s\n", err)
+		if _, err := s.SendMessage(m.ChannelID, "Cannot play song! Not in channel", nil); err != nil {
+			musicLog.Printf("Failed to send message: %s\n", err)
+		}
+	}
+
+	id := strings.Join(args, " ")
+	if !util.IsLink(id) {
+		if _, err := s.SendMessage(m.ChannelID, fmt.Sprintf("Searching `%s`", id), nil); err != nil {
 			musicLog.Printf("Failed to send message: %s\n", err)
 		}
 
-		return
+		var err error
+		id, err = music.GetID(id)
+		if err != nil {
+			if _, err := s.SendMessage(m.ChannelID, fmt.Sprintf("%s", err), nil); err != nil {
+				musicLog.Printf("Failed to send message: %s\n", err)
+			}
+
+			return
+		}
 	}
 
-	v, err := voice.NewSession(s)
+	media, err := music.GetVideo(id)
 	if err != nil {
-		musicLog.Printf("Failed to make new voice session: %s\n", err)
-		return
+		musicLog.Printf("Failed to get video: %s\n", err)
+		if _, err := s.SendMessage(m.ChannelID, "Failed to get video", nil); err != nil {
+			musicLog.Printf("Failed to send message: %s\n", err)
+		}
 	}
 
-	dj[m.GuildID] = musik.New(v) // create new session for guild
+	dj[m.GuildID].Player <- media
 
-	if err := dj[m.GuildID].JoinChannel(m.GuildID, vs.ChannelID, false, true); err != nil {
-		musicLog.Printf("Failed to join channel: %s\n", err)
-		return
-	}
-
-	// setup the queue system
-	go stereo(m.GuildID, m.ChannelID)
-
-	if _, err := s.SendMessage(m.ChannelID, "Music session successfully started!", nil); err != nil {
-		musicLog.Printf("Failed to send message: %s\n", err)
+	if len(dj[m.GuildID].Player) != 0 {
+		dj[m.GuildID].Queue = append(dj[m.GuildID].Queue, media.Title)
+		if _, err := s.SendMessage(m.ChannelID, fmt.Sprintf("`%s` Added to queue", media.Title), nil); err != nil {
+			musicLog.Printf("Failed to send message: %s\n", err)
+		}
 	}
 }
 
+// kill the current session
 func kill(m *gateway.MessageCreateEvent) {
 	if !util.Prefix(m.Content, fmt.Sprintf("%skill", *prefix)) {
 		return
@@ -92,70 +111,6 @@ func kill(m *gateway.MessageCreateEvent) {
 	dj[m.GuildID] = nil
 	if _, err := s.SendMessage(m.ChannelID, "Music session killed!", nil); err != nil {
 		musicLog.Printf("Failed to send message: %s\n", err)
-	}
-}
-
-func play(m *gateway.MessageCreateEvent) {
-	if !util.Prefix(m.Content, fmt.Sprintf("%splay", *prefix)) {
-		return
-	}
-
-	args := util.GetArgs(m.Content)
-	if len(args) < 1 {
-		if _, err := s.SendMessage(m.ChannelID, "Song name or link not given!", nil); err != nil {
-			musicLog.Printf("Failed to send message: %s\n")
-		}
-
-		return
-	}
-
-	if dj[m.GuildID] == nil {
-		if _, err := s.SendMessage(m.ChannelID, fmt.Sprintf("%s", noMusic), nil); err != nil {
-			musicLog.Printf("Failed to send message: %s\n", err)
-		}
-
-		return
-	}
-
-	if _, err := s.VoiceState(m.GuildID, u.User.ID); err != nil {
-		musicLog.Printf("Failed to get bot's voice state: %s\n", err)
-		if _, err := s.SendMessage(m.ChannelID, "Cannot play song! Not in channel", nil); err != nil {
-			musicLog.Printf("Failed to send message: %s\n", err)
-		}
-	}
-
-	id := strings.Join(args, " ")
-	if !util.IsLink(id) {
-		if _, err := s.SendMessage(m.ChannelID, fmt.Sprintf("Searching `%s`", id), nil); err != nil {
-			musicLog.Printf("Failed to send message: %s\n", err)
-		}
-
-		var err error
-		id, err = musik.GetID(id)
-		if err != nil {
-			if _, err := s.SendMessage(m.ChannelID, fmt.Sprintf("%s", err), nil); err != nil {
-				musicLog.Printf("Failed to send message: %s\n", err)
-			}
-
-			return
-		}
-	}
-
-	media, err := musik.GetVideo(id)
-	if err != nil {
-		musicLog.Printf("Failed to get video: %s\n", err)
-		if _, err := s.SendMessage(m.ChannelID, "Failed to get video", nil); err != nil {
-			musicLog.Printf("Failed to send message: %s\n", err)
-		}
-	}
-
-	dj[m.GuildID].Player <- media
-
-	if len(dj[m.GuildID].Player) != 0 {
-		dj[m.GuildID].Queue = append(dj[m.GuildID].Queue, media.Title)
-		if _, err := s.SendMessage(m.ChannelID, fmt.Sprintf("`%s` Added to queue", media.Title), nil); err != nil {
-			musicLog.Printf("Failed to send message: %s\n", err)
-		}
 	}
 }
 
@@ -209,6 +164,35 @@ func queue(m *gateway.MessageCreateEvent) {
 	}
 }
 
+// start a new session.
+func newSesh(m *gateway.MessageCreateEvent) {
+	vs, err := s.VoiceState(m.GuildID, m.Author.ID)
+	if err != nil {
+		musicLog.Printf("Failed to get voice state of %s: %s\n", m.Author.Username, err)
+		if _, err := s.SendMessage(m.ChannelID, fmt.Sprintf("Cannot join channel: %s not in channel", m.Author.Username), nil); err != nil {
+			musicLog.Printf("Failed to send message: %s\n", err)
+		}
+
+		return
+	}
+
+	v, err := voice.NewSession(s)
+	if err != nil {
+		musicLog.Printf("Failed to make new voice session: %s\n", err)
+		return
+	}
+
+	dj[m.GuildID] = music.New(v) // create new session for guild
+
+	if err := dj[m.GuildID].JoinChannel(m.GuildID, vs.ChannelID, false, true); err != nil {
+		musicLog.Printf("Failed to join channel: %s\n", err)
+		return
+	}
+
+	// setup the queue system
+	go stereo(m.GuildID, m.ChannelID)
+}
+
 // the function that actually plays the music
 func stereo(gid discord.GuildID, cid discord.ChannelID) {
 	for dj[gid] != nil {
@@ -230,7 +214,7 @@ func stereo(gid discord.GuildID, cid discord.ChannelID) {
 			"-c:a", "libopus", "-b:a", "64k", "-f", "opus", "-",
 		)
 
-		oggWriter := musik.NewOggWriter(dj[gid])
+		oggWriter := music.NewOggWriter(dj[gid])
 		defer oggWriter.Close()
 		dj[gid].Cancel = func() { cancel(); oggWriter.Close() }
 

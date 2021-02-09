@@ -72,9 +72,8 @@ func addHandlers() {
 	s.AddHandler(setPrefix)
 
 	// music
-	s.AddHandler(music)
-	s.AddHandler(kill)
 	s.AddHandler(play)
+	s.AddHandler(kill)
 	s.AddHandler(skip)
 	s.AddHandler(queue)
 }

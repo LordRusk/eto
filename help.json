@@ -16,14 +16,6 @@
 	],
 	"music": [
 		{
-			"cmd": "music",
-			"desc": "Start a new music session"
-		},
-		{
-			"cmd": "kill",
-			"desc": "Kill current music session"
-		},
-		{
 			"cmd": "play",
 			"args": [
 				{
@@ -31,6 +23,10 @@
 				}
 			],
 			"desc": "Play a video from youtube"
+		},
+		{
+			"cmd": "kill",
+			"desc": "Kill current music session"
 		},
 		{
 			"cmd": "skip",
