@@ -30,13 +30,6 @@ type Cmd struct {
 	State int    `json:"State,omitempty"`
 }
 
-// group of commands used to organize
-// commands
-type CmdGroup struct {
-	Name   string `json:"name,omitempty"`
-	CmdArr []Cmd  `json:"cmdarr,omitempty"`
-}
-
 // nice wrap
 type CmdGroups map[string][]Cmd
 

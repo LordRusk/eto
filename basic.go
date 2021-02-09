@@ -14,25 +14,25 @@ import (
 )
 
 var cg util.CmdGroups
+var basicLog = log.New(os.Stdout, "basic: ", 0)
 
 // prerequisites for the basic commands
 func basicSetup() error {
 	//go:embed help.json
-	var hjs []byte
+	var hjson []byte
 
-	if err := json.Unmarshal(hjs, &cg); err != nil {
-		return err
+	if err := json.Unmarshal(hjson, &cg); err != nil {
+		return fmt.Errorf("Failed to unmarshal 'help.json': %s\n", err)
 	}
 
 	return nil
 }
 
-var basicLog = log.New(os.Stdout, "basic: ", 0)
-
 func help(m *gateway.MessageCreateEvent) {
-	if !util.Prefix(m.Content, fmt.Sprintf("%shelp", *prefix)) {
+	if !strings.HasPrefix(m.Content, fmt.Sprintf("%shelp", *prefix)) {
 		return
 	}
+
 	embed, err := util.GenHelpMsg(*prefix, *botname, cg)
 	if err != nil {
 		basicLog.Printf("Failed to generate help message: %s\n")
@@ -49,11 +49,11 @@ func help(m *gateway.MessageCreateEvent) {
 }
 
 func setPrefix(m *gateway.MessageCreateEvent) {
-	if !util.Prefix(m.Content, fmt.Sprintf("%sprefix", *prefix)) {
+	if !strings.HasPrefix(m.Content, fmt.Sprintf("%sprefix", *prefix)) {
 		return
 	}
 
-	args := util.GetArgs(m.Content)
+	args := util.GetArgs(m.Content, *prefix)
 	if len(args) < 1 {
 		if _, err := s.SendMessage(m.ChannelID, "No prefix given!", nil); err != nil {
 			musicLog.Printf("Failed to send message: %s\n")
@@ -62,7 +62,7 @@ func setPrefix(m *gateway.MessageCreateEvent) {
 		return
 	}
 
-	*prefix = strings.Join(args, "")
+	*prefix = strings.Join(args, " ")
 	if _, err := s.SendMessage(m.ChannelID, fmt.Sprintf("`%s` is the new prefix!", *prefix), nil); err != nil {
 		basicLog.Printf("Failed to send message: %s\n", err)
 	}

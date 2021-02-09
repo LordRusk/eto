@@ -26,11 +26,11 @@ var yesMusic = fmt.Errorf("Music already playing in this guild. Close current se
 
 // Play a song. Automatically starts session if needed.
 func play(m *gateway.MessageCreateEvent) {
-	if !util.Prefix(m.Content, fmt.Sprintf("%splay", *prefix)) {
+	if !strings.HasPrefix(m.Content, fmt.Sprintf("%splay", *prefix)) {
 		return
 	}
 
-	args := util.GetArgs(m.Content)
+	args := util.GetArgs(m.Content, *prefix)
 	if len(args) < 1 {
 		if _, err := s.SendMessage(m.ChannelID, "Song name or link not given!", nil); err != nil {
 			musicLog.Printf("Failed to send message: %s\n")
@@ -88,7 +88,7 @@ func play(m *gateway.MessageCreateEvent) {
 
 // kill the current session
 func kill(m *gateway.MessageCreateEvent) {
-	if !util.Prefix(m.Content, fmt.Sprintf("%skill", *prefix)) {
+	if !strings.HasPrefix(m.Content, fmt.Sprintf("%skill", *prefix)) {
 		return
 	}
 
@@ -115,7 +115,7 @@ func kill(m *gateway.MessageCreateEvent) {
 }
 
 func skip(m *gateway.MessageCreateEvent) {
-	if !util.Prefix(m.Content, fmt.Sprintf("%sskip", *prefix)) {
+	if !strings.HasPrefix(m.Content, fmt.Sprintf("%sskip", *prefix)) {
 		return
 	}
 
@@ -134,7 +134,7 @@ func skip(m *gateway.MessageCreateEvent) {
 }
 
 func queue(m *gateway.MessageCreateEvent) {
-	if !util.Prefix(m.Content, fmt.Sprintf("%squeue", *prefix)) {
+	if !strings.HasPrefix(m.Content, fmt.Sprintf("%squeue", *prefix)) {
 		return
 	}
 

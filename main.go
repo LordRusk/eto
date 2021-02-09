@@ -40,7 +40,9 @@ func main() {
 	addHandlers()
 	addIntents()
 
-	basicSetup()
+	if err := basicSetup(); err != nil {
+		fmt.Println(err)
+	}
 
 	if err := s.Open(); err != nil {
 		fmt.Printf("Failed to connect: %s\n", err)
