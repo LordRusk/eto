@@ -3,10 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 
-	// "github.com/diamondburned/arikawa/v2/discord"
 	"github.com/diamondburned/arikawa/v2/gateway"
 	"github.com/diamondburned/arikawa/v2/state"
 	"github.com/diamondburned/arikawa/v2/utils/handler"
@@ -19,16 +17,14 @@ var prefix = flag.String("p", "!", "Set the bot's prefix")
 
 var s *state.State
 var u *gateway.ReadyEvent
-var logger *log.Logger
 
 func main() {
 	flag.Parse()
-	// logger = log.New(os.Stdout, fmt.Sprintf("%s: ", *botname), 0)
-	logger = log.New(os.Stdout, "", 0)
 	if *token == "" {
 		toke := os.Getenv("BOT_TOKEN")
 		if toke == "" {
-			logger.Fatalln("No BOT_TOKEN: Set $BOT_TOKEN or use '-t'")
+			fmt.Println("No BOT_TOKEN: Set $BOT_TOKEN or use '-t'")
+			os.Exit(1)
 		}
 		token = &toke
 	}
@@ -36,7 +32,8 @@ func main() {
 	var err error
 	s, err = state.New(fmt.Sprintf("Bot %s", *token))
 	if err != nil {
-		logger.Fatalf("Session failed: %s\n", err)
+		fmt.Printf("Session failed: %s\n", err)
+		os.Exit(1)
 	}
 
 	// addPreHandlers()
@@ -44,17 +41,18 @@ func main() {
 	addIntents()
 
 	if err := s.Open(); err != nil {
-		logger.Fatalf("Failed to connect: %s\n", err)
+		fmt.Printf("Failed to connect: %s\n", err)
+		os.Exit(1)
 	}
 	defer s.Close()
 
 	me, err := s.Me()
 	if err != nil {
-		logger.Fatalf("Failed to get bot user: %s\n", err)
+		fmt.Printf("Failed to get bot user: %s\n", err)
+		os.Exit(1)
 	}
 
-	logger.Printf("Started as %s\n", me.Username)
-	// logger.Println("Bot started")
+	fmt.Printf("Started as %s\n", me.Username)
 
 	// block *forever*
 	select {}
@@ -68,6 +66,10 @@ func addHandlers() {
 
 	// logger
 	// s.AddHandler(sent)
+
+	// basic
+	s.AddHandler(help)
+	s.AddHandler(setPrefix)
 
 	// music
 	s.AddHandler(music)

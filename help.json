@@ -1,0 +1,44 @@
+{
+	"basic": [
+		{
+			"cmd": "help",
+			"desc": "Generate the help message"
+		},
+		{
+			"cmd": "prefix",
+			"args": [
+				{
+					"name": "New Prefix"
+				}
+			],
+			"desc": "Generate the help message"
+		}
+	],
+	"music": [
+		{
+			"cmd": "music",
+			"desc": "Start a new music session"
+		},
+		{
+			"cmd": "kill",
+			"desc": "Kill current music session"
+		},
+		{
+			"cmd": "play",
+			"args": [
+				{
+					"name": "Search Term || Video Link"
+				}
+			],
+			"desc": "Play a video from youtube"
+		},
+		{
+			"cmd": "skip",
+			"desc": "Skip current song"
+		},
+		{
+			"cmd": "queue",
+			"desc": "Print the queue"
+		}
+	]
+}

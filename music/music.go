@@ -18,7 +18,8 @@ import (
 // Maximum queue length
 var MaxQueueLength = 512
 
-var ( // base youtube link
+// base youtube link
+var (
 	scheme      = "https"
 	base        = "www.youtube.com"
 	search      = "results?search_query="
@@ -33,8 +34,8 @@ var nonYoutubeLink = errors.New("Not a youtube link")
 // handle media
 // potentially expandable to other platforms
 type Media struct {
-	Stream io.Reader
 	*youtube.Video
+	Stream  io.Reader
 	StartAt int // used for rebasing
 }
 
@@ -102,19 +103,6 @@ func GetVideo(id string) (Media, error) {
 	}
 
 	return Media{Stream: resp.Body, Video: video}, nil
-}
-
-// checks whether str is a link
-func IsLink(str string) bool {
-	pstr := strings.Split(str, "/")
-
-	if pstr[0] == "https:" || pstr[0] == "http:" {
-		if pstr[1] == "" {
-			return true
-		}
-	}
-
-	return false
 }
 
 // bufio.Split function
