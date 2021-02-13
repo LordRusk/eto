@@ -41,7 +41,14 @@ func play(m *gateway.MessageCreateEvent) {
 
 	if dj[m.GuildID] == nil {
 		// make sure session is active
-		newSesh(m)
+		if err := newSesh(m); err != nil {
+			musicLog.Printf("Failed to start music session: %s\n", err)
+			if _, err := s.SendMessage(m.ChannelID, "Failed to start music session", nil); err != nil {
+				musicLog.Printf("Failed to send message: %s\n", err)
+			}
+		}
+		
+		return
 	}
 
 	if _, err := s.VoiceState(m.GuildID, u.User.ID); err != nil {
@@ -167,32 +174,27 @@ func queue(m *gateway.MessageCreateEvent) {
 }
 
 // start a new session.
-func newSesh(m *gateway.MessageCreateEvent) {
+func newSesh(m *gateway.MessageCreateEvent) error {
 	vs, err := s.VoiceState(m.GuildID, m.Author.ID)
 	if err != nil {
-		musicLog.Printf("Failed to get voice state of %s: %s\n", m.Author.Username, err)
-		if _, err := s.SendMessage(m.ChannelID, fmt.Sprintf("Cannot join channel: %s not in channel", m.Author.Username), nil); err != nil {
-			musicLog.Printf("Failed to send message: %s\n", err)
-		}
-
-		return
+		return fmt.Errorf("Failed to get voice state of %s: %s\n", m.Author.Username, err)
 	}
 
 	v, err := voice.NewSession(s)
 	if err != nil {
-		musicLog.Printf("Failed to make new voice session: %s\n", err)
-		return
+		return fmt.Errorf("Failed to make new voice session: %s\n", err)
 	}
 
 	dj[m.GuildID] = music.New(v) // create new session for guild
 
 	if err := dj[m.GuildID].JoinChannel(m.GuildID, vs.ChannelID, false, true); err != nil {
-		musicLog.Printf("Failed to join channel: %s\n", err)
-		return
+		dj[m.GuildID] = nil
+		return fmt.Errorf("Failed to join channel: %s\n", err)
 	}
 
 	// setup the queue system
 	go stereo(m.GuildID, m.ChannelID)
+	return nil
 }
 
 // the function that actually plays the music
