@@ -65,7 +65,7 @@ func GetID(str string) (string, error) {
 	if err != nil {
 		return "", err
 	} else if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("http status not ok: %s", resp.StatusCode)
+		return "", fmt.Errorf("http status not ok: %d", resp.StatusCode)
 	}
 	defer resp.Body.Close()
 

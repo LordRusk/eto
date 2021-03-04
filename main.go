@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
 
 	"github.com/diamondburned/arikawa/v2/gateway"
 	"github.com/diamondburned/arikawa/v2/state"
@@ -14,6 +15,7 @@ import (
 var token = flag.String("t", "", "Set the token (overrides $BOT_TOKEN)")
 var botname = flag.String("n", "eto", "Set the bot's name")
 var prefix = flag.String("p", "!", "Set the bot's prefix")
+var gittoken = flag.String("T", "", "Set the git token (overrides $GIT_TOKEN)")
 
 var s *state.State
 var u *gateway.ReadyEvent
@@ -28,6 +30,13 @@ func main() {
 		}
 		token = &toke
 	}
+	if *gittoken == "" {
+		toke := os.Getenv("GIT_TOKEN")
+		if toke == "" {
+			fmt.Println("No GIT_TOKEN: Set $GIT_TOKEN or use '-T'")
+		}
+		gittoken = &toke
+	}
 
 	var err error
 	s, err = state.New(fmt.Sprintf("Bot %s", *token))
@@ -36,13 +45,21 @@ func main() {
 		os.Exit(1)
 	}
 
-	// addPreHandlers()
+	addPreHandlers()
 	addHandlers()
 	addIntents()
 
-	if err := basicSetup(); err != nil {
-		fmt.Println(err)
+	if err := loggerSetup(); err != nil {
+		fmt.Printf("Failed to setup logger: %s\n", err)
 	}
+	if err := basicSetup(); err != nil {
+		fmt.Printf("%s\n", err)
+	}
+	// if *gittoken != "" {
+	// 	if err := gitSetup(); err != nil {
+	// 		fmt.Printf("%s\n", err)
+	// 	}
+	// }
 
 	if err := s.Open(); err != nil {
 		fmt.Printf("Failed to connect: %s\n", err)
@@ -58,8 +75,9 @@ func main() {
 
 	fmt.Printf("Started as %s\n", me.Username)
 
-	// block *forever*
-	select {}
+	sigChan := make(chan os.Signal)
+	signal.Notify(sigChan, os.Interrupt)
+	<-sigChan // block
 }
 
 func addHandlers() {
@@ -69,7 +87,7 @@ func addHandlers() {
 	})
 
 	// logger
-	// s.AddHandler(sent)
+	s.AddHandler(sent)
 
 	// basic
 	s.AddHandler(help)
@@ -83,6 +101,7 @@ func addHandlers() {
 }
 
 func addPreHandlers() {
+	// setup
 	s.PreHandler = handler.New()
 	s.PreHandler.Synchronous = true
 

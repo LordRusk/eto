@@ -33,7 +33,7 @@ func play(m *gateway.MessageCreateEvent) {
 	args := util.GetArgs(m.Content, *prefix)
 	if len(args) < 1 {
 		if _, err := s.SendMessage(m.ChannelID, "Song name or link not given!", nil); err != nil {
-			musicLog.Printf("Failed to send message: %s\n")
+			musicLog.Printf("Failed to send message: %s\n", err)
 		}
 
 		return
@@ -46,9 +46,9 @@ func play(m *gateway.MessageCreateEvent) {
 			if _, err := s.SendMessage(m.ChannelID, "Failed to start music session", nil); err != nil {
 				musicLog.Printf("Failed to send message: %s\n", err)
 			}
+
+			return
 		}
-		
-		return
 	}
 
 	if _, err := s.VoiceState(m.GuildID, u.User.ID); err != nil {
